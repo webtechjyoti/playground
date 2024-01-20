@@ -1,0 +1,59 @@
+// Cron events trigger actions in your code. A cron event needs
+// a corresponding action hook somewhere in code 
+add_action( 'wp_custom_unpublish_events', 'cw_function' );
+function cw_function() {
+    $result = unpublish_event($event_id);
+} 
+
+/**
+ * Function to unpublish an event by changing its status to 'draft'.
+ *
+ * @param int $event_id The ID of the event post.
+ * @return bool True on success, false on failure.
+ */
+function unpublish_event($event_id) {
+    unpublish_old_events();
+}
+
+/**
+ * Unpublish events older than the current date.
+ */
+function unpublish_old_events() {
+    // Define the arguments for WP_Query to fetch old events
+    $args = array(
+        'post_type'      => 'tribe_events',
+        'post_status'    => 'publish',
+        'meta_query'     => array(
+            array(
+                'key'     => '_EventEndDate',
+                'value'   => date('Y-m-d'), // Current date in 'Y-m-d' format
+                'compare' => '<',
+                'type'    => 'DATE',
+            ),
+        ),
+        'posts_per_page' => -1, // Retrieve all matching events
+    );
+    // Query events
+    $events_query = new WP_Query($args);
+
+    // Check if there are any events to unpublish
+    if ($events_query->have_posts()) {
+        while ($events_query->have_posts()) {
+            $events_query->the_post();
+            // Get the current event ID
+            $event_id = get_the_ID();
+			print_r($event_id);
+			echo("<br>");
+            // Update the event status to 'draft'
+            wp_update_post(array(
+                'ID'            => $event_id,
+                'post_status'   => 'draft',
+            ));
+        }
+        // Reset post data
+        wp_reset_postdata();
+        echo 'Old events unpublished successfully!';
+    } else {
+        echo 'No old events found.';
+    }
+}
